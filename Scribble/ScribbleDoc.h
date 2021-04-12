@@ -83,4 +83,15 @@ protected:
 protected:
 	UINT m_nPenWidth;
 	CPen m_penCur;
+	BOOL m_bThickPen;    // Thick currently selected or not
+	UINT m_nThinWidth;    // Current definition of thin
+	UINT m_nThickWidth;    // Current definition of thick
+public:
+	afx_msg void OnEditClearAll();
+	afx_msg void OnPenThickOrThin();
+protected:
+	void ReplacePen();
+public:
+	afx_msg void OnUpdateEditClearAll(CCmdUI* pCmdUI);
+	afx_msg void OnUpdatePenThickOrThin(CCmdUI* pCmdUI);
 };

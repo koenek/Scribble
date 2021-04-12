@@ -25,6 +25,10 @@ IMPLEMENT_DYNCREATE(CScribbleDoc, CDocument)
 BEGIN_MESSAGE_MAP(CScribbleDoc, CDocument)
 	ON_COMMAND(ID_FILE_SEND_MAIL, &CScribbleDoc::OnFileSendMail)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SEND_MAIL, &CScribbleDoc::OnUpdateFileSendMail)
+	ON_COMMAND(ID_EDIT_CLEAR_ALL, &CScribbleDoc::OnEditClearAll)
+	ON_COMMAND(ID_PEN_THICK_OR_THIN, &CScribbleDoc::OnPenThickOrThin)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_CLEAR_ALL, &CScribbleDoc::OnUpdateEditClearAll)
+	ON_UPDATE_COMMAND_UI(ID_PEN_THICK_OR_THIN, &CScribbleDoc::OnUpdatePenThickOrThin)
 END_MESSAGE_MAP()
 
 
@@ -51,9 +55,10 @@ CStroke* CScribbleDoc::NewStroke()
 
 void CScribbleDoc::InitDocument()
 {
-	m_nPenWidth = 2; // Default 2-pixel pen width
-	// Solid black pen
-	m_penCur.CreatePen(PS_SOLID, m_nPenWidth, RGB(0, 0, 0));
+	m_bThickPen = FALSE;
+	m_nThinWidth = 2; // Default thin pen is 2 pixels wide
+	m_nThickWidth = 5; // Default thick pen is 5 pixels wide
+	ReplacePen(); // Initialize pen according to current width
 }
 
 BOOL CScribbleDoc::OnNewDocument()
@@ -212,4 +217,48 @@ BOOL CStroke::DrawStroke(CDC* pDC)
 	}
 	pDC->SelectObject(pOldPen);
 	return TRUE;
+}
+
+
+void CScribbleDoc::OnEditClearAll()
+{
+	DeleteContents();
+	SetModifiedFlag();
+	UpdateAllViews(NULL);
+}
+
+
+void CScribbleDoc::OnPenThickOrThin()
+{
+	// Toggle the state of the pen between thin and thick.
+	m_bThickPen = !m_bThickPen;
+
+	// Change the current pen to reflect the new width.
+	ReplacePen();
+}
+
+
+void CScribbleDoc::ReplacePen()
+{
+	m_nPenWidth = m_bThickPen ? m_nThickWidth : m_nThinWidth;
+	// Change the current pen to reflect the new width.
+	m_penCur.DeleteObject();
+	m_penCur.CreatePen(PS_SOLID, m_nPenWidth, RGB(0, 0, 0));
+}
+
+
+void CScribbleDoc::OnUpdateEditClearAll(CCmdUI* pCmdUI)
+{
+	// Enable the user-interface object (menu item or tool-
+	// bar button) if the document is non-empty, i.e., has
+	// at least one stroke.
+	pCmdUI->Enable(!m_strokeList.IsEmpty());
+}
+
+
+void CScribbleDoc::OnUpdatePenThickOrThin(CCmdUI* pCmdUI)
+{
+	// Add check mark to Pen Thick Line menu item if the current
+	// pen width is "thick."
+	pCmdUI->SetCheck(m_bThickPen);
 }
