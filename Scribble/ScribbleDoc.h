@@ -94,4 +94,5 @@ protected:
 public:
 	afx_msg void OnUpdateEditClearAll(CCmdUI* pCmdUI);
 	afx_msg void OnUpdatePenThickOrThin(CCmdUI* pCmdUI);
+	afx_msg void OnPenWidths();
 };
