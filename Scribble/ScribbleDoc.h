@@ -22,7 +22,13 @@ protected:
 protected:
 	UINT	m_nPenWidth; // One width applies to entire stroke
 public:
-	CArray<CPoint, CPoint> m_pointArray; // Series of connected                                                    // points
+	CArray<CPoint, CPoint> m_pointArray; // Series of connected points
+
+protected:
+	CRect m_rectBounding; // smallest rect that surrounds all
+		// of the points in the stroke
+public:
+	CRect& GetBoundingRect() { return m_rectBounding; }
 
 	// Operations
 public:
@@ -30,6 +36,7 @@ public:
 
 public:
 	virtual void Serialize(CArchive& ar);
+	void FinishStroke();
 };
 
 class CScribbleDoc : public CDocument

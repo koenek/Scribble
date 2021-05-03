@@ -60,6 +60,15 @@ void CScribbleView::OnDraw(CDC* pDC)
 {
 	CScribbleDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
+	// Get the invalidated rectangle of the view, or in the case
+	// of printing, the clipping region of the printer DC.
+	CRect rectClip;
+	CRect rectStroke;
+	pDC->GetClipBox(&rectClip);
+
+	//Note: CScrollView::OnPaint() will have already adjusted the
+	//viewpoint origin before calling OnDraw(), to reflect the
+	//currently scrolled position.
 	if (!pDoc)
 		return;
 
@@ -71,6 +80,9 @@ void CScribbleView::OnDraw(CDC* pDC)
 	while (pos != NULL)
 	{
 		CStroke* pStroke = strokeList.GetNext(pos);
+		rectStroke = pStroke->GetBoundingRect();
+		if (!rectStroke.IntersectRect(&rectStroke, &rectClip))
+			continue;
 		pStroke->DrawStroke(pDC);
 	}
 }
@@ -175,6 +187,15 @@ void CScribbleView::OnLButtonUp(UINT nFlags, CPoint point)
 	dc.SelectObject(pOldPen);
 	m_pStrokeCur->m_pointArray.Add(point);
 
+	// Tell the stroke item that we're done adding points to it.
+	// This is so it can finish computing its bounding rectangle.
+	m_pStrokeCur->FinishStroke();
+
+	// Tell the other views that this stroke has been added
+	// so that they can invalidate this stroke's area in their
+	// client area.
+	pDoc->UpdateAllViews(this, 0L, m_pStrokeCur);
+
 	ReleaseCapture();    // Release the mouse capture established
 	// at the beginning of the mouse drag.
 	return;
@@ -203,5 +224,28 @@ void CScribbleView::OnMouseMove(UINT nFlags, CPoint point)
 	dc.LineTo(point);
 	dc.SelectObject(pOldPen);
 	m_ptPrev = point;
+	return;
+}
+
+
+void CScribbleView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
+{
+	// The document has informed this view that some data has changed.
+
+	if (pHint != NULL)
+	{
+		if (pHint->IsKindOf(RUNTIME_CLASS(CStroke)))
+		{
+			// The hint is that a stroke has been added (or changed).
+			// So, invalidate its rectangle.
+			CStroke* pStroke = (CStroke*)pHint;
+			CRect rectInvalid = pStroke->GetBoundingRect();
+			InvalidateRect(&rectInvalid);
+			return;
+		}
+	}
+	// We can't interpret the hint, so assume that anything might
+	// have been updated.
+	Invalidate();
 	return;
 }
