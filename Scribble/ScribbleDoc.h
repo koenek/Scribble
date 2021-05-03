@@ -51,6 +51,11 @@ public:
 
 	CPen* GetCurrentPen() { return &m_penCur; }
 
+protected:
+	CSize m_sizeDoc;
+public:
+	CSize GetDocSize() { return m_sizeDoc; }
+
 // Operations
 public:
 

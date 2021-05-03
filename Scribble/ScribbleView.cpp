@@ -20,9 +20,9 @@
 
 // CScribbleView
 
-IMPLEMENT_DYNCREATE(CScribbleView, CView)
+IMPLEMENT_DYNCREATE(CScribbleView, CScrollView)
 
-BEGIN_MESSAGE_MAP(CScribbleView, CView)
+BEGIN_MESSAGE_MAP(CScribbleView, CScrollView)
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, &CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CView::OnFilePrint)
@@ -39,7 +39,8 @@ END_MESSAGE_MAP()
 CScribbleView::CScribbleView() noexcept
 {
 	// TODO: add construction code here
-
+	CSize size = CSize(800, 900);
+	SetScrollSizes(MM_TEXT, size);
 }
 
 CScribbleView::~CScribbleView()
@@ -133,12 +134,12 @@ void CScribbleView::OnContextMenu(CWnd* /* pWnd */, CPoint point)
 #ifdef _DEBUG
 void CScribbleView::AssertValid() const
 {
-	CView::AssertValid();
+	CScrollView::AssertValid();
 }
 
 void CScribbleView::Dump(CDumpContext& dc) const
 {
-	CView::Dump(dc);
+	CScrollView::Dump(dc);
 }
 
 CScribbleDoc* CScribbleView::GetDocument() const // non-debug version is inline
@@ -154,6 +155,13 @@ CScribbleDoc* CScribbleView::GetDocument() const // non-debug version is inline
 
 void CScribbleView::OnLButtonDown(UINT nFlags, CPoint point)
 {
+	// CScrollView changes the viewport origin and mapping mode.
+	// It's necessary to convert the point from device coordinates
+	// to logical coordinates, such as are stored in the document.
+	CClientDC dc(this);
+	OnPrepareDC(&dc); // set up mapping mode and viewport origin
+	dc.DPtoLP(&point);
+
 	// Pressing the mouse button in the view window
 	// starts a new stroke.
 
@@ -214,6 +222,12 @@ void CScribbleView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CClientDC dc(this);
 
+	// CScrollView changes the viewport origin and mapping mode.
+	// It's necessary to convert the point from device coordinates
+	// to logical coordinates, such as are stored in the document.
+	OnPrepareDC(&dc); // set up mapping mode and viewport origin
+	dc.DPtoLP(&point);
+
 	m_pStrokeCur->m_pointArray.Add(point);
 
 	// Draw a line from the previous detected point in the mouse
@@ -239,7 +253,14 @@ void CScribbleView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			// The hint is that a stroke has been added (or changed).
 			// So, invalidate its rectangle.
 			CStroke* pStroke = (CStroke*)pHint;
+
+			CClientDC dc(this);
+			OnPrepareDC(&dc);
+
 			CRect rectInvalid = pStroke->GetBoundingRect();
+
+			dc.LPtoDP(&rectInvalid);
+
 			InvalidateRect(&rectInvalid);
 			return;
 		}
@@ -248,4 +269,13 @@ void CScribbleView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	// have been updated.
 	Invalidate();
 	return;
+}
+
+
+void CScribbleView::OnInitialUpdate()
+{
+	SetScrollSizes( MM_TEXT, GetDocument()->GetDocSize() );
+	CScrollView::OnInitialUpdate();
+
+	// TODO: Add your specialized code here and/or call the base class
 }
